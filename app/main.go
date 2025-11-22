@@ -34,11 +34,14 @@ func main() {
 
 func handleConn(conn net.Conn) {
 	readData := make([]byte, 1024)
-	_, err := conn.Read(readData)
-	if err != nil {
-		fmt.Println((err))
-		conn.Close()
-	}
-	conn.Write([]byte("+PONG\r\n"))
+	for {
+		_, err := conn.Read(readData)
+		if err != nil {
+			fmt.Println((err))
+			conn.Close()
+			break
+		}
+		conn.Write([]byte("+PONG\r\n"))
 
+	}
 }
