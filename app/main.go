@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"net"
 	"os"
+
+	"github.com/Shub3am/open-redis/parser"
 )
 
 // Ensures gofmt doesn't remove the "net" and "os" imports in stage 1 (feel free to remove this!)
@@ -16,7 +19,7 @@ func main() {
 
 	// Uncomment the code below to pass the first stage
 
-	l, err := net.Listen("tcp", "0.0.0.0:6379")
+	l, err := net.Listen("tcp", "0.0.0.0:6380")
 	if err != nil {
 		fmt.Println("Failed to bind to port 6379")
 		os.Exit(1)
@@ -33,15 +36,29 @@ func main() {
 }
 
 func handleConn(conn net.Conn) {
-	readData := make([]byte, 1024)
+	reader := bufio.NewReader(conn)
 	for {
-		_, err := conn.Read(readData)
+		parsed, err := parser.RESPReader(reader)
 		if err != nil {
-			fmt.Println((err))
+			fmt.Println((err), "Reader")
 			conn.Close()
-			break
+			return
 		}
-		conn.Write([]byte("+PONG\r\n"))
+		Result, err := parser.RESPParser(parsed)
+		if err != nil {
+			fmt.Println((err), "Parser")
+
+			conn.Close()
+			return
+		}
+		final, err := parser.Execute(Result)
+		if err != nil {
+			fmt.Println((err), "Executor")
+			conn.Close()
+			return
+		}
+		fmt.Println(final, "Final Output")
+		conn.Write(final)
 
 	}
 }
