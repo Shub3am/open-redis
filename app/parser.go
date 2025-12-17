@@ -93,9 +93,8 @@ func Execute(parsed []string, memory map[string]record) ([]byte, error) {
 		}
 		// 0 1 2 3 4 5 [set key value arg value]
 		new_record := record{value: parsed[2], expiresAt: nil}
-		fmt.Println(parsed, len(parsed))
-		if len(parsed[3:]) <= 2 {
-			fmt.Println(parsed[3:], parsed[3])
+		// Checking if there is additonal commands and whether the command are in key:value pair length
+		if len(parsed) > 3 && len(parsed[3:]) <= 2 {
 			switch strings.ToLower(parsed[3]) {
 			case "ex":
 				expiryTime, err := strconv.Atoi(parsed[4])
@@ -104,7 +103,6 @@ func Execute(parsed []string, memory map[string]record) ([]byte, error) {
 				}
 				t := time.Now().Add(time.Duration(expiryTime) * time.Second)
 				new_record.expiresAt = &t
-
 			case "px":
 				expiryTime, err := strconv.Atoi(parsed[4])
 				if err != nil {
@@ -112,6 +110,9 @@ func Execute(parsed []string, memory map[string]record) ([]byte, error) {
 				}
 				t := time.Now().Add(time.Duration(expiryTime) * time.Millisecond)
 				new_record.expiresAt = &t
+			default:
+				return []byte("+unsupported set option\r\n"), nil
+
 			}
 
 		}

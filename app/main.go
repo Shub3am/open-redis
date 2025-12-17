@@ -22,7 +22,7 @@ func main() {
 	fmt.Println("Logs from your program will appear here!")
 
 	// Uncomment the code below to pass the first stage
-	port := 6379
+	port := 6380
 	l, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", port))
 	if err != nil {
 		fmt.Printf("Failed to bind to port %d", port)
