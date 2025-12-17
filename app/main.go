@@ -5,18 +5,20 @@ import (
 	"fmt"
 	"net"
 	"os"
-
-	"github.com/Shub3am/open-redis/parser"
+	"time"
 )
 
-// Ensures gofmt doesn't remove the "net" and "os" imports in stage 1 (feel free to remove this!)
 var _ = net.Listen
 var _ = os.Exit
 
-func main() {
-	// You can use print statements as follows for debugging, they'll be visible when running tests.
+type record struct {
+	value     string
+	expiresAt *time.Time
+}
 
-	temp_mem := map[string]string{}
+func main() {
+
+	temp_mem := map[string]record{}
 	fmt.Println("Logs from your program will appear here!")
 
 	// Uncomment the code below to pass the first stage
@@ -37,23 +39,24 @@ func main() {
 		go handleConn(conn, temp_mem)
 
 	}
+
 }
 
-func handleConn(conn net.Conn, memory map[string]string) {
+func handleConn(conn net.Conn, memory map[string]record) {
 	reader := bufio.NewReader(conn)
 	for {
-		parsed, err := parser.RESPReader(reader)
+		parsed, err := RESPReader(reader)
 		if err != nil {
 			conn.Close()
 			return
 		}
-		result, err := parser.RESPParser(parsed)
+		result, err := RESPParser(parsed)
 		if err != nil {
 
 			conn.Close()
 			return
 		}
-		output, err := parser.Execute(result, memory)
+		output, err := Execute(result, memory)
 		if err != nil {
 
 			conn.Close()
