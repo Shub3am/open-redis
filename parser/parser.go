@@ -100,7 +100,7 @@ func Execute(parsed []string, memory map[string]string) ([]byte, error) {
 		if !ok {
 			return []byte("$-1\r\n"), nil
 		}
-		return []byte(fmt.Sprintf("+%s\r\n", value)), nil
+		return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)), nil
 
 	case "echo":
 		if len(parsed) < 2 {
