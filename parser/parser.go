@@ -82,7 +82,7 @@ func Execute(parsed []string) ([]byte, error) {
 	}
 	cmd := strings.ToLower(parsed[0])
 	if cmd == "ping" {
-		return []byte(("$4\r\nPONG\r\n")), nil
+		return []byte(("+PONG\r\n")), nil
 	}
 	if cmd != "echo" {
 		return nil, errors.New("unsupported command")
