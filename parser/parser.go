@@ -76,19 +76,41 @@ func RESPParser(raw []byte) ([]string, error) {
 	return parsedCommands, nil
 }
 
-func Execute(parsed []string) ([]byte, error) {
+func Execute(parsed []string, memory map[string]string) ([]byte, error) {
 	if len(parsed) == 0 {
 		return nil, errors.New("empty command")
 	}
+
 	cmd := strings.ToLower(parsed[0])
-	if cmd == "ping" {
+	fmt.Println(cmd)
+	switch cmd {
+	case "ping":
 		return []byte(("+PONG\r\n")), nil
-	}
-	if cmd != "echo" {
-		return nil, errors.New("unsupported command")
+	case "set":
+		if len(parsed) < 3 {
+			return []byte("+missing set values\r\n"), nil
+		}
+		memory[parsed[1]] = parsed[2]
+		return []byte("+OK\r\n"), nil
+	case "get":
+		if len(parsed) < 2 {
+			return []byte("+missing key for get command\r\n"), nil
+		}
+		value, ok := memory[parsed[1]]
+		if !ok {
+			return []byte("$-1\r\n"), nil
+		}
+		return []byte(fmt.Sprintf("+%s\r\n", value)), nil
+
+	case "echo":
+		if len(parsed) < 2 {
+			return []byte("+missing echo value\r\n"), nil
+		}
+		return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(parsed[1]), parsed[1])), nil
+
 	}
 
-	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(parsed[1]), parsed[1])), nil
+	return []byte("+unsupported command\r\n"), nil
 
 }
 

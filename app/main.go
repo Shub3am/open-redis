@@ -15,50 +15,52 @@ var _ = os.Exit
 
 func main() {
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
+
+	temp_mem := map[string]string{}
 	fmt.Println("Logs from your program will appear here!")
 
 	// Uncomment the code below to pass the first stage
-
-	l, err := net.Listen("tcp", "0.0.0.0:6379")
+	port := 6379
+	l, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", port))
 	if err != nil {
-		fmt.Println("Failed to bind to port 6379")
+		fmt.Printf("Failed to bind to port %d", port)
 		os.Exit(1)
 	}
+	fmt.Printf("Redis Started at 0.0.0.0:%d", port)
+
 	for {
 		conn, err := l.Accept()
 		if err != nil {
 			fmt.Println("Error accepting connection: ", err.Error())
 			os.Exit(1)
 		}
-		go handleConn(conn)
+		go handleConn(conn, temp_mem)
 
 	}
 }
 
-func handleConn(conn net.Conn) {
+func handleConn(conn net.Conn, memory map[string]string) {
 	reader := bufio.NewReader(conn)
 	for {
 		parsed, err := parser.RESPReader(reader)
 		if err != nil {
-			fmt.Println((err), "Reader")
 			conn.Close()
 			return
 		}
-		Result, err := parser.RESPParser(parsed)
+		result, err := parser.RESPParser(parsed)
 		if err != nil {
-			fmt.Println((err), "Parser")
 
 			conn.Close()
 			return
 		}
-		final, err := parser.Execute(Result)
+		output, err := parser.Execute(result, memory)
 		if err != nil {
-			fmt.Println((err), "Executor")
+
 			conn.Close()
 			return
 		}
-		fmt.Println(final, "Final Output")
-		conn.Write(final)
+
+		conn.Write(output)
 
 	}
 }
