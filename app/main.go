@@ -11,24 +11,31 @@ import (
 var _ = net.Listen
 var _ = os.Exit
 
+type recordType string
+
+const (
+	stringValue recordType = "string"
+	listValue   recordType = "list"
+)
+
 type record struct {
-	value     string
-	expiresAt *time.Time
+	stringValue string
+	listValue   []string
+	recordType  recordType
+	expiresAt   *time.Time
 }
 
 func main() {
 
 	temp_mem := map[string]record{}
-	fmt.Println("Logs from your program will appear here!")
 
-	// Uncomment the code below to pass the first stage
-	port := 6379
+	port := 6380
 	l, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", port))
 	if err != nil {
 		fmt.Printf("Failed to bind to port %d", port)
 		os.Exit(1)
 	}
-	fmt.Printf("Redis Started at 0.0.0.0:%d", port)
+	fmt.Printf(" Started at 0.0.0.0:%d", port)
 
 	for {
 		conn, err := l.Accept()
@@ -36,6 +43,7 @@ func main() {
 			fmt.Println("Error accepting connection: ", err.Error())
 			os.Exit(1)
 		}
+		fmt.Println(conn)
 		go handleConn(conn, temp_mem)
 
 	}

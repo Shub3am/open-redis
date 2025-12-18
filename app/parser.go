@@ -9,6 +9,11 @@ import (
 	"time"
 )
 
+var (
+	respPong        = []byte(("+PONG\r\n"))
+	respUnsupported = []byte("+unsupported command\r\n")
+)
+
 // Assuming it is always an array
 func RESPReader(r *bufio.Reader) ([]byte, error) {
 	var tokens []byte
@@ -81,68 +86,42 @@ func Execute(parsed []string, memory map[string]record) ([]byte, error) {
 	if len(parsed) == 0 {
 		return nil, errors.New("empty command")
 	}
-
 	cmd := strings.ToLower(parsed[0])
-	fmt.Println(cmd)
 	switch cmd {
 	case "ping":
-		return []byte(("+PONG\r\n")), nil
+		return respPong, nil
 	case "set":
 		if len(parsed) < 3 {
 			return []byte("+missing set values\r\n"), nil
 		}
-		// 0 1 2 3 4 5 [set key value arg value]
-		new_record := record{value: parsed[2], expiresAt: nil}
-		// Checking if there is additonal commands and whether the command are in key:value pair length
-		if len(parsed) > 3 && len(parsed[3:]) <= 2 {
-			switch strings.ToLower(parsed[3]) {
-			case "ex":
-				expiryTime, err := strconv.Atoi(parsed[4])
-				if err != nil {
-					return []byte("+unable to parse expire\r\n"), nil
-				}
-				t := time.Now().Add(time.Duration(expiryTime) * time.Second)
-				new_record.expiresAt = &t
-			case "px":
-				expiryTime, err := strconv.Atoi(parsed[4])
-				if err != nil {
-					return []byte("+unable to parse expire\r\n"), nil
-				}
-				t := time.Now().Add(time.Duration(expiryTime) * time.Millisecond)
-				new_record.expiresAt = &t
-			default:
-				return []byte("+unsupported set option\r\n"), nil
-
-			}
-
+		var optional_args []string
+		if len(parsed) > 3 {
+			optional_args = parsed[3:]
 		}
-		memory[parsed[1]] = new_record
-
-		return []byte("+OK\r\n"), nil
+		return set(memory, parsed[1], parsed[2], optional_args), nil
 	case "get":
 		if len(parsed) < 2 {
 			return []byte("+missing key for get command\r\n"), nil
 		}
-		property, ok := memory[parsed[1]]
-		if !ok {
-			return []byte("$-1\r\n"), nil
-		}
-		if property.expiresAt != nil && time.Now().After(*property.expiresAt) {
-			delete(memory, parsed[1])
-			return []byte("$-1\r\n"), nil
-
-		}
-		return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(property.value), property.value)), nil
+		return get(memory, parsed[1]), nil
 
 	case "echo":
 		if len(parsed) < 2 {
 			return []byte("+missing echo value\r\n"), nil
 		}
-		return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(parsed[1]), parsed[1])), nil
-
+		return echo(parsed[1]), nil
+	case "rpush":
+		exisRecord, ok := memory[parsed[1]]
+		if ok {
+			exisRecord.listValue = append(exisRecord.listValue, parsed[2])
+			memory[parsed[1]] = exisRecord
+		} else {
+			memory[parsed[1]] = record{recordType: listValue, listValue: []string{parsed[2]}}
+		}
+		return []byte(fmt.Sprintf(":%d\r\n", len(memory[parsed[1]].listValue))), nil
 	}
 
-	return []byte("+unsupported command\r\n"), nil
+	return respUnsupported, nil
 
 }
 
@@ -151,3 +130,47 @@ func Execute(parsed []string, memory map[string]record) ([]byte, error) {
 // 	stored, err := RESPParser([]byte("*2\r\n$0\r\n\r\n$3\r\nhey\r\n"))
 // 	fmt.Println(stored, err)
 // }
+
+func echo(printValue string) []byte {
+	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(printValue), printValue))
+}
+
+func get(memory map[string]record, key string) []byte {
+	property, ok := memory[key]
+	if !ok {
+		return []byte("$-1\r\n")
+	}
+	if property.expiresAt != nil && time.Now().After(*property.expiresAt) {
+		delete(memory, key)
+		return []byte("$-1\r\n")
+
+	}
+	return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(property.stringValue), property.stringValue))
+}
+
+func set(memory map[string]record, key string, value string, optional_args []string) []byte {
+	// setting recordType as stringvalue, will check for already existing value later
+	new_record := record{recordType: stringValue, stringValue: value, expiresAt: nil}
+
+	// Checking if there is additonal commands and whether the command are in key:value pair length
+	if len(optional_args) <= 2 {
+		expiryTime, err := strconv.Atoi(optional_args[1])
+		if err != nil {
+			return []byte("+unable to parse expire\r\n")
+		}
+		switch strings.ToLower(optional_args[0]) {
+		case "ex":
+			t := time.Now().Add(time.Duration(expiryTime) * time.Second)
+			new_record.expiresAt = &t
+		case "px":
+			t := time.Now().Add(time.Duration(expiryTime) * time.Millisecond)
+			new_record.expiresAt = &t
+		default:
+			return []byte("+unsupported set option\r\n")
+
+		}
+	}
+	memory[key] = new_record
+
+	return []byte("+OK\r\n")
+}
