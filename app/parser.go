@@ -111,6 +111,9 @@ func Execute(parsed []string, memory map[string]record) ([]byte, error) {
 		}
 		return echo(parsed[1]), nil
 	case "rpush":
+		if len(parsed) < 2 {
+			return []byte("+missing echo value\r\n"), nil
+		}
 		exisRecord, ok := memory[parsed[1]]
 		if ok {
 			exisRecord.listValue = append(exisRecord.listValue, parsed[2])
