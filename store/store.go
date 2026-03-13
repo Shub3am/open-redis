@@ -7,11 +7,17 @@ package store
 
 import (
 	"errors"
+	"math"
+	"strconv"
 	"sync"
 	"time"
 )
 
-var ErrWrongType = errors.New("WRONGTYPE Operation against a key holding the wrong kind of value")
+var (
+	ErrWrongType  = errors.New("WRONGTYPE Operation against a key holding the wrong kind of value")
+	ErrNotInteger = errors.New("ERR value is not an integer or out of range")
+	ErrOverflow   = errors.New("ERR increment or decrement would overflow")
+)
 
 // Kind is the value type of a key, spelled the way the TYPE command reports it.
 type Kind string
@@ -82,6 +88,30 @@ func (s *Store) Set(key, value string, options SetOptions) bool {
 		delete(s.expiresAt, key)
 	}
 	return true
+}
+
+// IncrBy adds delta to the integer stored at key, treating a missing key as 0,
+// and keeps any TTL the key already has.
+func (s *Store) IncrBy(key string, delta int64) (int64, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var current int64
+	if existing := s.lookup(key); existing != nil {
+		if existing.kind != KindString {
+			return 0, ErrWrongType
+		}
+		parsed, ok := ParseInteger(existing.text)
+		if !ok {
+			return 0, ErrNotInteger
+		}
+		current = parsed
+	}
+	if (delta > 0 && current > math.MaxInt64-delta) || (delta < 0 && current < math.MinInt64-delta) {
+		return 0, ErrOverflow
+	}
+	next := current + delta
+	s.entries[key] = &entry{kind: KindString, text: strconv.FormatInt(next, 10)}
+	return next, nil
 }
 
 // Delete removes keys and returns how many existed.
