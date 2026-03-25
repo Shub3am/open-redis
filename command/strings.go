@@ -28,14 +28,7 @@ func echo(_ *store.Store, args []string, reply *resp.Writer) {
 
 func get(keyspace *store.Store, args []string, reply *resp.Writer) {
 	value, found, err := keyspace.Get(args[0])
-	switch {
-	case err != nil:
-		reply.WriteError(err.Error())
-	case !found:
-		reply.WriteNullBulkString()
-	default:
-		reply.WriteBulkString(value)
-	}
+	writeOptionalValue(reply, value, found, err)
 }
 
 // set parses SET key value [NX|XX] [EX seconds|PX milliseconds]. Flags may
