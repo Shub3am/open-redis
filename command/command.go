@@ -36,6 +36,16 @@ var commands = map[string]spec{
 	"incr":   {2, incr},
 	"decr":   {2, decr},
 	"incrby": {3, incrBy},
+
+	"del":      {-2, del},
+	"exists":   {-2, exists},
+	"expire":   {3, expire},
+	"pexpire":  {3, pexpire},
+	"ttl":      {2, ttl},
+	"pttl":     {2, pttl},
+	"keys":     {2, keys},
+	"type":     {2, keyType},
+	"flushall": {-1, flushAll},
 }
 
 // Execute runs one command and writes exactly one reply. args must hold at
