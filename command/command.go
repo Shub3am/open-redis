@@ -80,7 +80,10 @@ func arityMatches(arity, argumentCount int) bool {
 
 func unknownCommandMessage(args []string) string {
 	var message strings.Builder
-	fmt.Fprintf(&message, "ERR unknown command '%s', with args beginning with: ", args[0])
+	fmt.Fprintf(&message, "ERR unknown command '%s'", args[0])
+	if len(args) > 1 {
+		message.WriteString(", with args beginning with: ")
+	}
 	for _, arg := range args[1:] {
 		fmt.Fprintf(&message, "'%s' ", arg)
 	}
