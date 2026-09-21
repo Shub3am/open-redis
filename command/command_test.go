@@ -37,7 +37,7 @@ func runScript(t *testing.T, keyspace *store.Store, script []exchange) {
 
 func TestExecuteRejectsUnknownCommandAndBadArity(t *testing.T) {
 	runScript(t, store.New(), []exchange{
-		{[]string{"NOPE"}, "-ERR unknown command 'NOPE', with args beginning with: \r\n"},
+		{[]string{"NOPE"}, "-ERR unknown command 'NOPE'\r\n"},
 		{[]string{"nope", "a", "b"}, "-ERR unknown command 'nope', with args beginning with: 'a' 'b' \r\n"},
 		{[]string{"GET"}, "-ERR wrong number of arguments for 'get' command\r\n"},
 		{[]string{"GET", "a", "b"}, "-ERR wrong number of arguments for 'get' command\r\n"},
