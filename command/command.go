@@ -46,6 +46,13 @@ var commands = map[string]spec{
 	"keys":     {2, keys},
 	"type":     {2, keyType},
 	"flushall": {-1, flushAll},
+
+	"lpush":  {-3, lpush},
+	"rpush":  {-3, rpush},
+	"lpop":   {2, lpop},
+	"rpop":   {2, rpop},
+	"lrange": {4, lrange},
+	"llen":   {2, llen},
 }
 
 // Execute runs one command and writes exactly one reply. args must hold at
@@ -78,4 +85,17 @@ func unknownCommandMessage(args []string) string {
 		fmt.Fprintf(&message, "'%s' ", arg)
 	}
 	return message.String()
+}
+
+// writeOptionalValue replies with a value that may be absent, which Redis
+// encodes as a null bulk string.
+func writeOptionalValue(reply *resp.Writer, value string, found bool, err error) {
+	switch {
+	case err != nil:
+		reply.WriteError(err.Error())
+	case !found:
+		reply.WriteNullBulkString()
+	default:
+		reply.WriteBulkString(value)
+	}
 }

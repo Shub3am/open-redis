@@ -6,6 +6,7 @@
 package store
 
 import (
+	"container/list"
 	"errors"
 	"math"
 	"strconv"
@@ -25,11 +26,15 @@ type Kind string
 const (
 	KindNone   Kind = "none"
 	KindString Kind = "string"
+	KindList   Kind = "list"
 )
 
 type entry struct {
 	kind Kind
 	text string
+	// items is only set for KindList. A linked list keeps pushes and pops at
+	// either end O(1), which LPUSH and LPOP depend on.
+	items *list.List
 }
 
 // Store is a keyspace guarded by one mutex. Reads take the same lock as
